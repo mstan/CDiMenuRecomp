@@ -4,7 +4,7 @@ Standalone player for the Philips CD-i system menu. This repo owns the launcher,
 
 ## Windows preview
 
-Extract the release ZIP and open **CdiMenu.exe**. Select your original CD-i player ROM with the hash listed in `build.json`. The launcher starts the original CD-RTOS shell without a disc. A controller, mouse or the arrow keys can move the cursor. Z, Enter or Space selects an item.
+Extract the release ZIP and open **CdiMenu.exe**. In recomp-ui, select your original CD-i player ROM matching the hash listed in `build.json` and select **Play**. The launcher starts the original CD-RTOS shell without a disc. A controller, mouse or the arrow keys can move the cursor. Z, Enter or Space selects an item.
 
 The package needs the user-supplied player ROM. It contains the native runtime, launcher, runtime libraries and notices. The settings and original NVRAM are kept by the engine under its per-user CD-i player directory.
 

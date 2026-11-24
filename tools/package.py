@@ -32,27 +32,34 @@ def main():
     args = parser.parse_args()
     os.environ["PATH"] = str(args.toolchain_bin) + os.pathsep + os.environ["PATH"]
     menu = args.work_root.resolve() / "menu"
-    runtime = menu / "runtime/CdiMenuRuntime.exe"
-    launcher = menu / "CdiMenu.exe"
+    runtime = menu / "CdiMenu.exe"
     expected_rom = digest(args.firmware)
     identity = args.work_root / "firmware/bios_identity.h"
     compiled_sha = "".join(re.findall(r"0x([a-f0-9]{2})", identity.read_text().lower()))
     if expected_rom != compiled_sha:
         raise ValueError("The selected ROM differs from the compiled BIOS identity")
-    audit_build_graph(menu / runtime.name, "CdiMenuRuntime")
+    audit_build_graph(runtime, "CdiMenu")
     libraries = runtime_dependencies(runtime, args.toolchain_bin / "SDL2.dll", [args.toolchain_bin])
     audit_runtime(runtime, {name.lower() for name in libraries})
     verify(runtime)
-    files = {"CdiMenu.exe": launcher, "runtime/CdiMenuRuntime.exe": runtime,
-             "README.md": ROOT / "README.md", "LICENSE": ROOT / "LICENSE",
+    files = {"CdiMenu.exe": runtime, "README.md": ROOT / "SETUP.md",
+             "LICENSE": ROOT / "LICENSE",
              "licenses/cdirecomp-LICENSE": ENGINE / "LICENSE",
              "licenses/cdirecomp-PERMISSIONS.md": ENGINE / "PERMISSIONS.md",
+             "licenses/recomp-ui-LICENSE": ROOT / "recomp-ui/LICENSE",
+             "licenses/imgui-LICENSE.txt": ROOT / "recomp-ui/src/third_party/imgui/LICENSE.txt",
+             "licenses/SDL2-LICENSE.txt": args.toolchain_bin.parent / "share/licenses/SDL2/LICENSE.txt",
              "licenses/THIRD-PARTY-NOTICES.md": ENGINE / "THIRD-PARTY-NOTICES.md"}
-    files.update({f"runtime/{name}": path for name, path in libraries.items()})
+    files.update(libraries)
+    assets = menu / "assets"
+    for path in sorted(assets.rglob("*")):
+        if path.is_file():
+            files["assets/" + path.relative_to(assets).as_posix()] = path
     metadata = {
-        "version": "0.1.0", "firmware_sha256": expected_rom,
+        "version": "0.2.0", "firmware_sha256": expected_rom,
         "source": subprocess.check_output(["git", "-C", ROOT, "rev-parse", "HEAD"], text=True).strip(),
         "cdirecomp": subprocess.check_output(["git", "-C", ENGINE, "rev-parse", "HEAD"], text=True).strip(),
+        "recomp_ui": subprocess.check_output(["git", "-C", ROOT / "recomp-ui", "rev-parse", "HEAD"], text=True).strip(),
         "files": {name: digest(path) for name, path in files.items()},
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
