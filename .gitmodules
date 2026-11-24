@@ -1,0 +1,3 @@
+[submodule "cdirecomp"]
+	path = cdirecomp
+	url = https://github.com/mstan/cdirecomp.git

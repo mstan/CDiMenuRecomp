@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.20)
+project(CDiMenuRecomp VERSION 0.1.0 LANGUAGES C)
+
+set(BUILD_TESTING OFF)
+set(CDI_BUILD_RUNTIME ON)
+set(CDI_COSIM_BUILD OFF CACHE BOOL "" FORCE)
+set(CDI_GAME_GENERATED_DIR "")
+set(CDI_RUNTIME_TARGET CdiMenuRuntime)
+foreach(component VIDEO LOADER DRAWING MEMORY SERVICE STREAMING BOARD GPU)
+    set(CDI_${component}_BACKEND HLE CACHE STRING "" FORCE)
+endforeach()
+
+add_subdirectory(cdirecomp/runner cdi-runtime)
+target_compile_definitions(CdiMenuRuntime PRIVATE CDI_PRODUCT_NAME="CD-i Menu")
+set_target_properties(CdiMenuRuntime PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/runtime")
+
+if(WIN32)
+    add_executable(CDiMenu WIN32 src/launcher.c)
+    target_link_libraries(CDiMenu PRIVATE comdlg32)
+    target_link_options(CDiMenu PRIVATE $<$<C_COMPILER_ID:GNU>:-municode>)
+endif()
