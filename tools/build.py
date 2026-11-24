@@ -40,9 +40,9 @@ def main():
     run(emitter / f"CdiRecompBios{suffix}", firmware, "--emit", "--out", generated,
         "--seeds", ENGINE / "bios/cdrtos_discovered.txt")
     configure = [cmake, "-S", ROOT, "-B", menu, "-G", "Ninja",
-                 "-DCMAKE_BUILD_TYPE=Release", f"-DCDI_BIOS_GENERATED_DIR={generated}"]
+                 "-DCMAKE_BUILD_TYPE=Release", f"-DCDI_BIOS_GENERATED_DIR={generated.as_posix()}"]
     if os.name == "nt":
-        configure.append(f"-DSDL2_DIR={args.toolchain_bin.parent / 'lib/cmake/SDL2'}")
+        configure.append(f"-DSDL2_DIR={(args.toolchain_bin.parent / 'lib/cmake/SDL2').as_posix()}")
     run(*configure)
     run(cmake, "--build", menu, "--parallel", str(args.jobs))
 
