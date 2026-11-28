@@ -15,7 +15,7 @@ from build import ENGINE, ROOT
 
 sys.path.insert(0, str(ENGINE / "tools"))
 from build_provenance import verify
-from package_runtime_release import audit_build_graph, audit_runtime, runtime_dependencies
+from package_runtime_release import audit_build_graph, audit_runtime, runtime_dependencies, collect_assets, audit_archive
 
 
 def digest(path):
@@ -48,15 +48,15 @@ def main():
              "licenses/cdirecomp-PERMISSIONS.md": ENGINE / "PERMISSIONS.md",
              "licenses/recomp-ui-LICENSE": ROOT / "recomp-ui/LICENSE",
              "licenses/imgui-LICENSE.txt": ROOT / "recomp-ui/src/third_party/imgui/LICENSE.txt",
+             "licenses/launcher-fonts-NOTICE.md": ROOT / "recomp-ui/assets/common/fonts/NOTICE.md",
+             "licenses/launcher-images-NOTICE.md": ROOT / "recomp-ui/assets/common/img/NOTICE.md",
              "licenses/SDL2-LICENSE.txt": args.toolchain_bin.parent / "share/licenses/SDL2/LICENSE.txt",
              "licenses/THIRD-PARTY-NOTICES.md": ENGINE / "THIRD-PARTY-NOTICES.md"}
     files.update(libraries)
     assets = menu / "assets"
-    for path in sorted(assets.rglob("*")):
-        if path.is_file():
-            files["assets/" + path.relative_to(assets).as_posix()] = path
+    files.update(collect_assets(assets, menu / "launcher-assets.txt"))
     metadata = {
-        "version": "0.2.0", "firmware_sha256": expected_rom,
+        "product": "CDiMenuRecomp", "version": "0.2.0", "platform": "windows-x64", "firmware_sha256": expected_rom,
         "source": subprocess.check_output(["git", "-C", ROOT, "rev-parse", "HEAD"], text=True).strip(),
         "cdirecomp": subprocess.check_output(["git", "-C", ENGINE, "rev-parse", "HEAD"], text=True).strip(),
         "recomp_ui": subprocess.check_output(["git", "-C", ROOT / "recomp-ui", "rev-parse", "HEAD"], text=True).strip(),
@@ -70,6 +70,7 @@ def main():
     with zipfile.ZipFile(args.out) as archive:
         if archive.testzip() is not None:
             raise ValueError("Package integrity check failed")
+    audit_archive(args.out, set(files) | {"build.json"}, "", "CdiMenu.exe")
     print(f"{digest(args.out)}  {args.out}")
 
 
