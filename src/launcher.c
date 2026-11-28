@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 #include "cdi_launcher.h"
+#include "cdi_launcher_settings.h"
 #include "cdi_sha256.h"
 #include "bios_identity.h"
 #include "launcher_profile.h"
@@ -7,6 +8,7 @@
 #include <SDL.h>
 #include <stdio.h>
 #include <string.h>
+#include "cdi_launcher_diagnostics.h"
 
 static int verify_bios(const char *path, RecompLauncherCDiscVerify *verdict) {
     uint8_t hash[32];
@@ -44,25 +46,12 @@ int cdi_launcher_run(const char *initial_bios, const char *initial_disc,
     game.num_aspect_labels = 2;
     game.setup_wizard_supported = 1;
     game.config_path = config_path;
+    RecompLauncherCModProvider diagnostics={0};
+    diagnostics.ctx=config;diagnostics.feature_count=diagnostics_feature_count;
+    diagnostics.feature_get=diagnostics_feature_get;diagnostics.feature_enable=diagnostics_feature_enable;
+    diagnostics.commit=diagnostics_mod_commit;game.mods=&diagnostics;
 
-    settings.window_scale = 2;
-    settings.window_width = config->window_width;
-    settings.aspect_index = config->fit_to_screen;
-    settings.fullscreen = config->fullscreen;
-    settings.linear_filter = config->linear_filter;
-    settings.enable_audio = config->enable_audio;
-    settings.audio_freq = 44100;
-    settings.volume = config->volume;
-    settings.mouse_enabled = config->enable_mouse;
-    settings.mouse_sensitivity = config->mouse_sensitivity;
-    settings.mouse_invert_x = config->mouse_invert_x;
-    settings.mouse_invert_y = config->mouse_invert_y;
-    settings.player_src[0] = config->input_source;
-    memcpy(settings.mouse_bind, config->mouse_bind, sizeof config->mouse_bind);
-    memcpy(settings.player_key_bind[0], config->key_bind, sizeof config->key_bind);
-    memcpy(settings.player_pad_bind[0], config->pad_bind, sizeof config->pad_bind);
-    snprintf(settings.player_gamepad_guid[0], sizeof settings.player_gamepad_guid[0],
-             "%s", config->gamepad_guid);
+    cdi_launcher_settings_from_config(&settings,config);
     char *base = SDL_GetBasePath();
     char assets[1024];
     int length = snprintf(assets, sizeof assets, "%sassets", base ? base : "");
@@ -72,22 +61,7 @@ int cdi_launcher_run(const char *initial_bios, const char *initial_disc,
     recomp_launcher_set_preserve_sdl(1);
     int result = recomp_launcher_run_window("Philips CD-i Menu", &settings, &game, assets,
         initial_bios ? initial_bios : config->bios_path, bios, bios_capacity);
-    config->fit_to_screen = settings.aspect_index == 1;
-    config->window_width = settings.window_width;
-    config->fullscreen = settings.fullscreen;
-    config->linear_filter = settings.linear_filter;
-    config->enable_audio = settings.enable_audio;
-    config->volume = settings.volume;
-    config->enable_mouse = settings.mouse_enabled;
-    config->mouse_sensitivity = settings.mouse_sensitivity;
-    config->mouse_invert_x = settings.mouse_invert_x;
-    config->mouse_invert_y = settings.mouse_invert_y;
-    config->input_source = settings.player_src[0];
-    config->gamepad_instance = settings.player_gamepad_instance[0];
-    memcpy(config->mouse_bind, settings.mouse_bind, sizeof config->mouse_bind);
-    memcpy(config->key_bind, settings.player_key_bind[0], sizeof config->key_bind);
-    memcpy(config->pad_bind, settings.player_pad_bind[0], sizeof config->pad_bind);
-    snprintf(config->gamepad_guid, sizeof config->gamepad_guid, "%s", settings.player_gamepad_guid[0]);
+    cdi_launcher_settings_to_config(config,&settings);
     if (result == RECOMP_LAUNCHER_RESULT_LAUNCH) {
         uint8_t digest[32];
         if (strlen(bios) >= sizeof config->bios_path ||
